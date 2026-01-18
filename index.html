@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precipitation Visualization - MapLibre Custom Layer</title>
+
+    <!-- MapLibre GL JS from CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            min-width: 280px;
+            z-index: 1;
+        }
+
+        .controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .control-group .value {
+            float: right;
+            color: #0066cc;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0066cc;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #0052a3;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0066cc;
+            cursor: pointer;
+            border: none;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #0052a3;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0052a3;
+        }
+
+        button:active {
+            background: #003d7a;
+        }
+
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            font-size: 13px;
+            color: #555;
+            max-width: 200px;
+            z-index: 1;
+        }
+
+        .info h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .gradient-legend {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            gap: 8px;
+        }
+
+        .gradient-bar {
+            flex: 1;
+            height: 20px;
+            border-radius: 4px;
+            /* Gradient is set dynamically from COLOR_GRADIENT config in main.js */
+        }
+
+        .gradient-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-top: 4px;
+            padding: 0 2px;
+        }
+
+        /* Data point markers */
+        .marker {
+            cursor: pointer;
+        }
+
+        .marker-inner {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .marker-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .controls {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px;
+                min-width: auto;
+                max-width: none;
+            }
+
+            .controls h2 {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+
+            .control-group {
+                margin-bottom: 15px;
+            }
+
+            .control-group label {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+
+            button {
+                padding: 8px;
+                font-size: 13px;
+            }
+
+            .info {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 10px;
+                max-width: none;
+            }
+
+            .info h3 {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+
+            .gradient-legend {
+                margin-top: 6px;
+            }
+
+            .gradient-bar {
+                height: 16px;
+            }
+
+            .gradient-labels {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                top: 8px;
+                right: 8px;
+                left: 8px;
+                padding: 10px;
+            }
+
+            .controls h2 {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .control-group {
+                margin-bottom: 12px;
+            }
+
+            .control-group label {
+                font-size: 12px;
+            }
+
+            .control-group .value {
+                font-size: 12px;
+            }
+
+            .info {
+                bottom: 8px;
+                left: 8px;
+                right: 8px;
+                padding: 8px;
+            }
+
+            .info h3 {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+
+            .gradient-bar {
+                height: 14px;
+            }
+
+            .gradient-labels {
+                font-size: 9px;
+                margin-top: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="controls">
+        <h2>Precipitation Parameters</h2>
+
+        <div class="control-group">
+            <label>
+                Influence Radius
+                <span class="value" id="radiusValue">25 km</span>
+            </label>
+            <input type="range" id="influenceRadius" min="10" max="500" step="5" value="25">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Falloff Steepness
+                <span class="value" id="steepnessValue">1.8</span>
+            </label>
+            <input type="range" id="falloffSteepness" min="0.5" max="3.0" step="0.1" value="1.8">
+        </div>
+
+        <button id="resetButton">Reset to Defaults</button>
+    </div>
+
+    <div class="info">
+        <h3>Precipitation Scale</h3>
+        <div class="gradient-legend">
+            <div class="gradient-bar"></div>
+        </div>
+        <div class="gradient-labels">
+            <span>0.2</span>
+            <span>0.4</span>
+            <span>0.6</span>
+            <span>0.8</span>
+            <span>1.0</span>
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
